@@ -1,0 +1,4 @@
+- Hitting non control keys causes a fill bug
+- Score needs to be tracked
+- Game needs to end when all cells are filled and no solutions are left
+- Create a GUI
