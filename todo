@@ -1,4 +1,5 @@
 - Hitting non control keys causes a fill bug
+- Random cells are generated even when the board doesn't shift (probably fixable with a Om like tape reel)
 - Score needs to be tracked
 - Game needs to end when all cells are filled and no solutions are left
 - Create a GUI

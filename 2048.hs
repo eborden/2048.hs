@@ -85,6 +85,7 @@ pickRand xs = randomRIO (0, length xs - 1) >>= return . (xs !!)
 -- Print the board in a semi friendly manner
 printBoard b = mapM (putStrLn) $ map show b
 
+-- Recursive function that runs the whole damn show
 gameLoop :: Board -> IO Board
 gameLoop b = do
     -- Add random tile
@@ -100,8 +101,10 @@ gameLoop b = do
     return =<< gameLoop =<< keyPress b2 <$> getChar
 
 main = do
+    -- Turn input buffering off so key presses don't need an enter
     hSetBuffering stdin NoBuffering
 
-    gameLoop $ startBoard (1, 2) (buildBoard 4 4)
+    -- Kick off the game loop with a fresh board
+    gameLoop $ startBoard (2, 2) (buildBoard 4 4)
     
     return ()
