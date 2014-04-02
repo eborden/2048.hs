@@ -92,7 +92,14 @@ sumBoard x = sum (map sum x)
 
 -- Find if solutions are possible
 solutionCount :: Board -> Int
-solutionCount b = 2
+solutionCount b = length $ filter (\x -> fst x == snd x) (allNeighbors b)
+
+allNeighbors :: Board -> [(Int, Int)]
+allNeighbors b = concat $ (map (rightNeighbors) b) ++ (map (rightNeighbors) (reverse b))
+
+rightNeighbors :: Row -> [(Int, Int)]
+rightNeighbors (x:y:xs) = (x,y):rightNeighbors (y:xs)
+rightNeighbors _ = []
 
 --summableNeighbors :: Row -> Int -> Int
 --summableNeighbors (x:y:xs) = 
