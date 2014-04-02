@@ -49,7 +49,9 @@ main = do
     hideCursor
 
     -- Kick off the game loop with a fresh history
-    final <- gameLoop [(startBoard (2, 2) (buildBoard 4 4), 0)] (\(board, score) -> do
+    final <- gameLoop [(startBoard (2, 2) (buildBoard 4 4), 0)] (\h -> do
+        let score = currentScore h
+            board = currentBoard h
         -- Display the world
         clearScreen
         setCursorPosition 0 0

@@ -2,6 +2,8 @@ module TwentyFortyEight
     ( gameLoop
     , buildBoard
     , startBoard
+    , currentBoard
+    , currentScore
     ) where
 
 import Data.List (transpose, elemIndices, intersperse, (\\))
@@ -128,20 +130,22 @@ pickRand :: [a] -> IO a
 pickRand xs = randomRIO (0, length xs - 1) >>= return . (xs !!)
 
 -- Recursive function that runs the whole damn show
-gameLoop :: History -> (World -> IO b) -> IO History
+gameLoop :: History -> (History -> IO b) -> IO History
 gameLoop h func = do
     -- Add a random cell if the world has changed
     currBoard <- addRandomCell h
 
+    let h2 = (currBoard, currentScore h):h
+
     -- Pass the current board to the client
-    func (currBoard, currentScore h)
+    func h2
 
     -- Collect game over conditions
     let full = 0 == (length $ emptyCells currBoard)
         noSolutions = 0 == solutionCount currBoard
 
     if (full && noSolutions) then
-        return $ (currBoard, 0):(tail h)
+        return h2
     else do
         -- Get key input
         c <- getChar
@@ -150,4 +154,4 @@ gameLoop h func = do
             newScore = diffScore (currentScore h) currBoard newBoard
         
         -- Do key handling
-        return =<< gameLoop ((newBoard, newScore):(currBoard, currentScore h):(tail h)) func
+        return =<< gameLoop ((newBoard, newScore):h2) func
