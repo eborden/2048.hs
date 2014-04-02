@@ -95,14 +95,11 @@ solutionCount :: Board -> Int
 solutionCount b = length $ filter (\x -> fst x == snd x) (allNeighbors b)
 
 allNeighbors :: Board -> [(Int, Int)]
-allNeighbors b = concat $ (map (rightNeighbors) b) ++ (map (rightNeighbors) (reverse b))
+allNeighbors b = concat $ (map (rightNeighbors) b) ++ (map (rightNeighbors) (transpose b))
 
 rightNeighbors :: Row -> [(Int, Int)]
 rightNeighbors (x:y:xs) = (x,y):rightNeighbors (y:xs)
 rightNeighbors _ = []
-
---summableNeighbors :: Row -> Int -> Int
---summableNeighbors (x:y:xs) = 
 
 {------------------------------|
        IO Business
