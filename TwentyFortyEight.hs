@@ -4,7 +4,7 @@ module TwentyFortyEight
     , startBoard
     ) where
 
-import Data.List (transpose, elemIndices, intersperse)
+import Data.List (transpose, elemIndices, intersperse, (\\))
 import Control.Applicative
 import System.Random (randomRIO)
 
@@ -90,6 +90,9 @@ sumRowLeft (x:y:xs)
 sumBoard :: Board -> Int
 sumBoard x = sum (map sum x)
 
+diffScore :: Int -> Board -> Board -> Int
+diffScore score bold bnew = score + (sum $ (concat bold) \\ (concat bnew))
+
 -- Find if solutions are possible
 solutionCount :: Board -> Int
 solutionCount b = length $ filter (\x -> fst x == snd x) (allNeighbors b)
@@ -128,22 +131,23 @@ pickRand xs = randomRIO (0, length xs - 1) >>= return . (xs !!)
 gameLoop :: History -> (World -> IO b) -> IO History
 gameLoop h func = do
     -- Add a random cell if the world has changed
-    currentBoard <- addRandomCell h    
+    currBoard <- addRandomCell h
 
     -- Pass the current board to the client
-    func (currentBoard, currentScore h)
+    func (currBoard, currentScore h)
 
     -- Collect game over conditions
-    let full = 0 == (length $ emptyCells currentBoard)
-        noSolutions = 0 == solutionCount currentBoard
+    let full = 0 == (length $ emptyCells currBoard)
+        noSolutions = 0 == solutionCount currBoard
 
     if (full && noSolutions) then
-        return $ (currentBoard, 0):(tail h)
+        return $ (currBoard, 0):(tail h)
     else do
         -- Get key input
         c <- getChar
 
-        let newBoard = keyPress currentBoard c
+        let newBoard = keyPress currBoard c
+            newScore = diffScore (currentScore h) currBoard newBoard
         
         -- Do key handling
-        return =<< gameLoop ((newBoard, sumBoard newBoard):(currentBoard, currentScore h):(tail h)) func
+        return =<< gameLoop ((newBoard, newScore):(currBoard, currentScore h):(tail h)) func
