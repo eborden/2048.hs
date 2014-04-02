@@ -55,7 +55,7 @@ main = do
         setCursorPosition 0 0
         putStrLn "2048.hs"
         putStrLn ""
-        putStrLn $ "Score: " ++ (show $ sumBoard board)
+        putStrLn $ "Score: " ++ (show score)
         putStrLn ""
         printBoard board
         )

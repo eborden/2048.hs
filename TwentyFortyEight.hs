@@ -1,6 +1,5 @@
 module TwentyFortyEight
     ( gameLoop
-    , sumBoard
     , buildBoard
     , startBoard
     ) where
@@ -91,6 +90,12 @@ sumRowLeft (x:y:xs)
 sumBoard :: Board -> Int
 sumBoard x = sum (map sum x)
 
+-- Find if solutions are possible
+solutionCount :: Board -> Int
+solutionCount b = 2
+
+--summableNeighbors :: Row -> Int -> Int
+--summableNeighbors (x:y:xs) = 
 
 {------------------------------|
        IO Business
@@ -119,15 +124,22 @@ pickRand xs = randomRIO (0, length xs - 1) >>= return . (xs !!)
 gameLoop :: History -> (World -> IO b) -> IO History
 gameLoop h func = do
     -- Add a random cell if the world has changed
-    currentBoard <- addRandomCell h
+    currentBoard <- addRandomCell h    
 
     -- Pass the current board to the client
-    func (currentBoard, 0)
+    func (currentBoard, currentScore h)
 
-    -- Get key input
-    c <- getChar
+    -- Collect game over conditions
+    let full = 0 == (length $ emptyCells currentBoard)
+        noSolutions = 0 == solutionCount currentBoard
 
-    let newBoard = keyPress currentBoard c
-    
-    -- Do key handling
-    return =<< gameLoop ((newBoard, 0):(currentBoard, 0):(tail h)) func
+    if (full && noSolutions) then
+        return $ (currentBoard, 0):(tail h)
+    else do
+        -- Get key input
+        c <- getChar
+
+        let newBoard = keyPress currentBoard c
+        
+        -- Do key handling
+        return =<< gameLoop ((newBoard, sumBoard newBoard):(currentBoard, currentScore h):(tail h)) func
