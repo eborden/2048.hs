@@ -7,15 +7,26 @@ import Control.Applicative
 import System.Random (randomRIO)
 
 type Tile = Int
+type Score = Int
 type Row = [Tile]
-type Board = [Row]
 type BoardPosition = (Int, Int)
+type Board = [Row]
+type World = (Board, Score)
+type History = [World]
 
+-- Create a new board
 buildBoard :: Int -> Int -> Board
 buildBoard x y = replicate y (replicate x 0)
 
 startBoard :: BoardPosition -> Board -> Board
 startBoard x b = mutateBoard b x 2 
+
+-- History functions
+currentBoard :: History -> Board
+currentBoard = fst . head
+
+currentScore :: History -> Score
+currentScore = snd . head
 
 -- Change a tile on the board
 mutateBoard :: Board -> BoardPosition -> Tile -> Board
@@ -73,10 +84,24 @@ sumRowLeft (x:y:xs)
               else x:(sumRowLeft (y:xs))
     | x == 0 = (sumRowLeft (y:xs)) ++ [0]
 
-
 {------------------------------|
        Impure IO Business
 -------------------------------}
+
+-- Determine whether to append a new cell
+addRandomCell :: History -> IO Board
+addRandomCell ((present, _):(past, _):_)
+    | present == past = do return present
+    | present /= past = mutateRandomCell present
+addRandomCell [(present, _), (past, _)]
+    | present == past = do return present
+    | present /= past = mutateRandomCell present
+addRandomCell [(present, _)] = mutateRandomCell present
+
+mutateRandomCell :: Board -> IO Board
+mutateRandomCell b = do
+    rando <- pickRand $ emptyCells b
+    return $ mutateBoard b rando 2
 
 -- Get a random list element
 pickRand :: [a] -> IO a
@@ -86,25 +111,29 @@ pickRand xs = randomRIO (0, length xs - 1) >>= return . (xs !!)
 printBoard b = mapM (putStrLn) $ map show b
 
 -- Recursive function that runs the whole damn show
-gameLoop :: Board -> IO Board
-gameLoop b = do
-    -- Add random tile
-    rando <- pickRand $ emptyCells b
-    let b2 = mutateBoard b rando 2
+gameLoop :: History -> (World -> IO b) -> IO History
+gameLoop h func = do
+    -- Add a random cell if the world has changed
+    currentBoard <- addRandomCell h
 
-    -- Display the world
-    clearScreen
-    putStrLn ""
-    printBoard b2
+    -- Pass the current board to the client
+    func (currentBoard, 0)
+
+    -- Get key input
+    c <- getChar
 
     -- Do key handling
-    return =<< gameLoop =<< keyPress b2 <$> getChar
+    return =<< gameLoop ((keyPress currentBoard c, 0):(currentBoard, 0):(tail h)) func
 
 main = do
     -- Turn input buffering off so key presses don't need an enter
     hSetBuffering stdin NoBuffering
 
-    -- Kick off the game loop with a fresh board
-    gameLoop $ startBoard (2, 2) (buildBoard 4 4)
+    -- Kick off the game loop with a fresh history
+    gameLoop [(startBoard (2, 2) (buildBoard 4 4), 0)] (\(board, score) -> do
+        -- Display the world
+        clearScreen
+        printBoard board
+        )
     
     return ()
