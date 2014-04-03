@@ -111,7 +111,7 @@ gameOver :: Board -> Bool
 gameOver b = (0 == (length $ emptyCells b)) && (0 == solutionCount b)
 
 win :: Board -> Bool
-win b = 1024 `elem` (concat b)
+win b = any (==True) $ map (elem 2048) b
 
 worldHasChanged :: History -> Bool
 worldHasChanged ((present, _):(past, _):_)
