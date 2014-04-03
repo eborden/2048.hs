@@ -127,10 +127,11 @@ worldHasChanged _ = True
 -------------------------------}
 
 -- Append random cell
-addRandomCell :: Board -> IO Board
-addRandomCell b = do
+addRandomCell :: Board -> [Tile] -> IO Board
+addRandomCell b t = do
     rando <- pickRand $ emptyCells b
-    return $ mutateBoard b rando 2
+    tile <- pickRand t
+    return $ mutateBoard b rando tile
 
 -- Get a random list element
 pickRand :: [a] -> IO a
@@ -141,7 +142,7 @@ gameLoop :: History -> (History -> IO b) -> IO (History, Bool)
 gameLoop h clientAction = do
     -- Add a random cell if the world has changed
     h2 <- if worldHasChanged h then do
-              currBoard <- addRandomCell (currentBoard h)
+              currBoard <- addRandomCell (currentBoard h) (if (currentScore h) > 500 then [2, 2, 4] else [2])
               return ((currBoard, currentScore h):h)
           else do return h
 
