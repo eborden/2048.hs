@@ -1,2 +1,3 @@
-- randomly add 4 instead of 2 after certain threshold
+- Add winning condition on 2048 cell creation.
+- Randomly add 4 instead of 2 after certain threshold.
 - Create a GUI
