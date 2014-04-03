@@ -138,28 +138,30 @@ pickRand xs = randomRIO (0, length xs - 1) >>= return . (xs !!)
 
 -- Recursive function that runs the whole damn show
 gameLoop :: History -> (History -> IO b) -> IO (History, Bool)
-gameLoop h func = do
+gameLoop h clientAction = do
     -- Add a random cell if the world has changed
     h2 <- if worldHasChanged h then do
               currBoard <- addRandomCell (currentBoard h)
               return ((currBoard, currentScore h):h)
           else do return h
 
-    -- Pass the current board to the client
-    func h2
+    -- Pass history to client
+    clientAction h2
 
     let currBoard = currentBoard h2
     
-    if gameOver currBoard then
-        return (h2, False)
-    else if win currBoard then
+    if win currBoard then
         return (h2, True)
+    else if gameOver currBoard then
+        return (h2, False)
     else do
-        -- Get key input
         c <- getChar
-
-        let newBoard = keyPress currBoard c
-            newScore = diffScore (currentScore h) currBoard newBoard
-        
-        -- Do key handling
-        return =<< gameLoop ((newBoard, newScore):h2) func
+        if c == 'q' then
+            return (h2, False)
+        else do
+            --Handle input
+            let newBoard = keyPress currBoard c
+                newScore = diffScore (currentScore h2) currBoard newBoard
+            
+            -- Keep the world turning
+            return =<< gameLoop ((newBoard, newScore):h2) clientAction
