@@ -113,22 +113,22 @@ gameOver b = (0 == (length $ emptyCells b)) && (0 == solutionCount b)
 win :: Board -> Bool
 win b = 1024 `elem` (concat b)
 
+worldHasChanged :: History -> Bool
+worldHasChanged ((present, _):(past, _):_)
+    | present == past = False
+    | present /= past = True
+worldHasChanged [(present, _), (past, _)]
+    | present == past = False
+    | present /= past = True
+worldHasChanged _ = True
+
 {------------------------------|
        IO Business
 -------------------------------}
 
--- Determine whether to append a new cell
-addRandomCell :: History -> IO Board
-addRandomCell ((present, _):(past, _):_)
-    | present == past = do return present
-    | present /= past = mutateRandomCell present
-addRandomCell [(present, _), (past, _)]
-    | present == past = do return present
-    | present /= past = mutateRandomCell present
-addRandomCell [(present, _)] = mutateRandomCell present
-
-mutateRandomCell :: Board -> IO Board
-mutateRandomCell b = do
+-- Append random cell
+addRandomCell :: Board -> IO Board
+addRandomCell b = do
     rando <- pickRand $ emptyCells b
     return $ mutateBoard b rando 2
 
@@ -140,15 +140,16 @@ pickRand xs = randomRIO (0, length xs - 1) >>= return . (xs !!)
 gameLoop :: History -> (History -> IO b) -> IO (History, Bool)
 gameLoop h func = do
     -- Add a random cell if the world has changed
-    currBoard <- addRandomCell h
-
-    let h2 = (currBoard, currentScore h):h
+    h2 <- if worldHasChanged h then do
+              currBoard <- addRandomCell (currentBoard h)
+              return ((currBoard, currentScore h):h)
+          else do return h
 
     -- Pass the current board to the client
     func h2
 
-    -- Collect game over conditions
-
+    let currBoard = currentBoard h2
+    
     if gameOver currBoard then
         return (h2, False)
     else if win currBoard then
