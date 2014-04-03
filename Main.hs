@@ -49,7 +49,7 @@ main = do
     hideCursor
 
     -- Kick off the game loop with a fresh history
-    final <- gameLoop [(startBoard (2, 2) (buildBoard 4 4), 0)] (\h -> do
+    (final, win) <- gameLoop [(startBoard (2, 2) (buildBoard 4 4), 0)] (\h -> do
         let score = currentScore h
             board = currentBoard h
         -- Display the world
@@ -62,5 +62,13 @@ main = do
         printBoard board
         )
 
-    mapM (putStrLn) ["", "", "Game Over"]
+    if win then mapM (putStrLn) ["", "", "Congratulations!"]
+    else mapM (putStrLn) ["", "", "Game Over. Press w to play again."]
+
+    c <- getChar
+    if c =='w' then main
+    else showCursor
+    
+    clearScreen
+    
     return ()

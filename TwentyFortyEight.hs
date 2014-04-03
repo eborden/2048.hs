@@ -6,7 +6,7 @@ module TwentyFortyEight
     , currentScore
     ) where
 
-import Data.List (transpose, elemIndices, intersperse, (\\))
+import Data.List (transpose, elem, elemIndices, intersperse, (\\))
 import Control.Applicative
 import System.Random (randomRIO)
 
@@ -93,7 +93,7 @@ sumBoard :: Board -> Int
 sumBoard x = sum (map sum x)
 
 diffScore :: Int -> Board -> Board -> Int
-diffScore score bold bnew = score + (sum $ (concat bold) \\ (concat bnew))
+diffScore score old new = score + (sum $ (concat old) \\ (concat new))
 
 -- Find if solutions are possible
 solutionCount :: Board -> Int
@@ -105,6 +105,13 @@ allNeighbors b = concat $ (map (rightNeighbors) b) ++ (map (rightNeighbors) (tra
 rightNeighbors :: Row -> [(Int, Int)]
 rightNeighbors (x:y:xs) = (x,y):rightNeighbors (y:xs)
 rightNeighbors _ = []
+
+-- Conditions
+gameOver :: Board -> Bool
+gameOver b = (0 == (length $ emptyCells b)) && (0 == solutionCount b)
+
+win :: Board -> Bool
+win b = 1024 `elem` (concat b)
 
 {------------------------------|
        IO Business
@@ -130,7 +137,7 @@ pickRand :: [a] -> IO a
 pickRand xs = randomRIO (0, length xs - 1) >>= return . (xs !!)
 
 -- Recursive function that runs the whole damn show
-gameLoop :: History -> (History -> IO b) -> IO History
+gameLoop :: History -> (History -> IO b) -> IO (History, Bool)
 gameLoop h func = do
     -- Add a random cell if the world has changed
     currBoard <- addRandomCell h
@@ -141,11 +148,11 @@ gameLoop h func = do
     func h2
 
     -- Collect game over conditions
-    let full = 0 == (length $ emptyCells currBoard)
-        noSolutions = 0 == solutionCount currBoard
 
-    if (full && noSolutions) then
-        return h2
+    if gameOver currBoard then
+        return (h2, False)
+    else if win currBoard then
+        return (h2, True)
     else do
         -- Get key input
         c <- getChar
