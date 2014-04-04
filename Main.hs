@@ -49,7 +49,7 @@ main = do
     hideCursor
 
     -- Kick off the game loop with a fresh history
-    (final, win) <- gameLoop [(startBoard (2, 2) (buildBoard 4 4), 0)] (\h -> do
+    (final, win) <- gameLoop [(startBoard (2, 2) (buildBoard 4 4), 0)] (getChar) (\h -> do
         let score = currentScore h
             board = currentBoard h
         -- Display the world

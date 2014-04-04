@@ -138,8 +138,8 @@ pickRand :: [a] -> IO a
 pickRand xs = randomRIO (0, length xs - 1) >>= return . (xs !!)
 
 -- Recursive function that runs the whole damn show
-gameLoop :: History -> (History -> IO b) -> IO (History, Bool)
-gameLoop h clientAction = do
+gameLoop :: History -> IO Char -> (History -> IO b) -> IO (History, Bool)
+gameLoop h getClientInput clientAction = do
     -- Add a random cell if the world has changed
     h2 <- if worldHasChanged h then do
               currBoard <- addRandomCell (currentBoard h) (if (currentScore h) > 500 then [2, 2, 4] else [2])
@@ -156,7 +156,7 @@ gameLoop h clientAction = do
     else if gameOver currBoard then
         return (h2, False)
     else do
-        c <- getChar
+        c <- getClientInput
         if c == 'q' then
             return (h2, False)
         else do
@@ -165,4 +165,4 @@ gameLoop h clientAction = do
                 newScore = diffScore (currentScore h2) currBoard newBoard
             
             -- Keep the world turning
-            return =<< gameLoop ((newBoard, newScore):h2) clientAction
+            return =<< gameLoop ((newBoard, newScore):h2) (getClientInput) clientAction
