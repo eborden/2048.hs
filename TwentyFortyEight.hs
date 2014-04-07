@@ -45,10 +45,11 @@ mutateRow (x:xs) p t
     | otherwise = t:xs
 
 -- Get empty cell positions
-emptyCells b = concat $ foldl (\a r -> a ++ [zip (repeat $ length a) (emptyRowCells r)]) [] b
+emptyCells :: Board -> [(Int, Int)]
+emptyCells = concat . foldl (\a r -> a ++ [zip (repeat $ length a) (emptyRowCells r)]) []
 
 emptyRowCells :: Row -> [Int]
-emptyRowCells r = elemIndices 0 r
+emptyRowCells = elemIndices 0
 
 -- Key movements
 keyPress :: Board -> Char -> Board
@@ -60,15 +61,10 @@ keyPress b x = case x of
     _   -> b
 
 shiftLeft :: Board -> Board
-shiftLeft b = map (sumRowLeft . shiftRowLeft) $ b
-
-shiftRight :: Board -> Board
-shiftRight b = map (reverse . sumRowLeft . shiftRowLeft . reverse) $ b
-
-shiftUp :: Board -> Board
+shiftLeft = map (sumRowLeft . shiftRowLeft)
+-- shiftLeft derivatives
+shiftRight = map (reverse . sumRowLeft . shiftRowLeft . reverse)
 shiftUp = transpose . shiftLeft . transpose
-
-shiftDown :: Board -> Board
 shiftDown = transpose . shiftRight . transpose
 
 -- Move all empty cells to the end
@@ -88,10 +84,7 @@ sumRowLeft (x:y:xs)
               else x:(sumRowLeft (y:xs))
     | x == 0 = (sumRowLeft (y:xs)) ++ [0]
 
--- Find the total point value on the board
-sumBoard :: Board -> Int
-sumBoard x = sum (map sum x)
-
+-- Find the total point value generated between board states
 diffScore :: Int -> Board -> Board -> Int
 diffScore score old new = score + (sum $ (concat old) \\ (concat new))
 
