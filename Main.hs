@@ -41,6 +41,31 @@ colorStr fgi fg bgi bg str = do
   putStr str
   setSGR []
 
+ui :: History -> IO ()
+ui h = do
+    let score = currentScore h
+        board = currentBoard h
+    -- Display the world
+    clearScreen
+    setCursorPosition 0 0
+    putStrLn "2048.hs"
+    putStrLn ""
+    putStrLn $ "Score: " ++ (show score)
+    putStrLn ""
+    printBoard board
+    return ()
+
+-- Key movements
+keyPress :: History -> IO Command
+keyPress h = do
+    x <- getChar
+    return $ case x of
+        'w' -> North
+        's' -> South
+        'd' -> East
+        'a' -> West
+        _   -> NoCommand
+
 -- Where the magic happens
 main = do
     -- Turn input buffering off so key presses don't need an enter
@@ -49,18 +74,7 @@ main = do
     hideCursor
 
     -- Kick off the game loop with a fresh history
-    (final, win) <- gameLoop [(startBoard (2, 2) (buildBoard 4 4), 0)] (getChar) (\h -> do
-        let score = currentScore h
-            board = currentBoard h
-        -- Display the world
-        clearScreen
-        setCursorPosition 0 0
-        putStrLn "2048.hs"
-        putStrLn ""
-        putStrLn $ "Score: " ++ (show score)
-        putStrLn ""
-        printBoard board
-        )
+    (final, win) <- gameLoop [(startBoard (2, 2) (buildBoard 4 4), 0)] (keyPress) (ui)
 
     if win then mapM (putStrLn) ["", "", "Congratulations!"]
     else mapM (putStrLn) ["", "", "Game Over. Press w to play again."]

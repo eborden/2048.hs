@@ -4,6 +4,8 @@ module TwentyFortyEight
     , startBoard
     , currentBoard
     , currentScore
+    , Command(North, South, East, West, Quit, Restart, NoCommand)
+    , History
     ) where
 
 import Data.List (transpose, elem, elemIndices, intersperse, (\\))
@@ -17,6 +19,7 @@ type BoardPosition = (Int, Int)
 type Board = [Row]
 type World = (Board, Score)
 type History = [World]
+data Command = North | South | East | West | Quit | Restart | NoCommand
 
 -- Create a new board
 buildBoard :: Int -> Int -> Board
@@ -52,12 +55,12 @@ emptyRowCells :: Row -> [Int]
 emptyRowCells = elemIndices 0
 
 -- Key movements
-keyPress :: Board -> Char -> Board
-keyPress b x = case x of
-    'a' -> shiftLeft b
-    'w' -> shiftUp b
-    'd' -> shiftRight b
-    's' -> shiftDown b
+moveBoard :: Board -> Command -> Board
+moveBoard b x = case x of
+    North -> shiftUp b
+    South -> shiftDown b
+    East -> shiftRight b
+    West -> shiftLeft b
     _   -> b
 
 shiftLeft :: Board -> Board
@@ -131,7 +134,10 @@ pickRand :: [a] -> IO a
 pickRand xs = randomRIO (0, length xs - 1) >>= return . (xs !!)
 
 -- Recursive function that runs the whole damn show
-gameLoop :: History -> IO Char -> (History -> IO b) -> IO (History, Bool)
+gameLoop :: History
+    -> (History -> IO Command)
+    -> (History -> IO ())
+    -> IO (History, Bool)
 gameLoop h getClientInput clientAction = do
     -- Add a random cell if the world has changed
     h2 <- if worldHasChanged h then do
@@ -149,13 +155,13 @@ gameLoop h getClientInput clientAction = do
     else if gameOver currBoard then
         return (h2, False)
     else do
-        c <- getClientInput
-        if c == 'q' then
-            return (h2, False)
-        else do
-            --Handle input
-            let newBoard = keyPress currBoard c
-                newScore = diffScore (currentScore h2) currBoard newBoard
-            
-            -- Keep the world turning
-            return =<< gameLoop ((newBoard, newScore):h2) (getClientInput) clientAction
+        command <- getClientInput h2
+        case command of
+            Quit -> return (h2, False)
+            _    -> do
+                --Handle input
+                let newBoard = moveBoard currBoard command
+                    newScore = diffScore (currentScore h2) currBoard newBoard
+                
+                -- Keep the world turning
+                return =<< gameLoop ((newBoard, newScore):h2) (getClientInput) clientAction
