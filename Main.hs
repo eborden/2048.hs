@@ -55,15 +55,17 @@ ui h = do
     printBoard board
     return ()
 
--- Key movements
-keyPress :: History -> IO Command
-keyPress h = do
+-- User initiated commands
+userCommand :: History -> IO Command
+userCommand h = do
     x <- getChar
+    ai <- aiCommand h
     return $ case x of
         'w' -> North
         's' -> South
         'd' -> East
         'a' -> West
+        'h' -> ai
         _   -> NoCommand
 
 -- Where the magic happens
@@ -74,7 +76,7 @@ main = do
     hideCursor
 
     -- Kick off the game loop with a fresh history
-    (final, win) <- gameLoop [(startBoard (2, 2) (buildBoard 4 4), 0)] (keyPress) (ui)
+    (final, win) <- gameLoop [(startBoard (2, 2) (buildBoard 4 4), 0)] (aiCommand) (ui)
 
     if win then mapM (putStrLn) ["", "", "Congratulations!"]
     else mapM (putStrLn) ["", "", "Game Over. Press w to play again."]

@@ -4,13 +4,19 @@ module TwentyFortyEight
     , startBoard
     , currentBoard
     , currentScore
+    , aiCommand
+    , randomCommand
     , Command(North, South, East, West, Quit, Restart, NoCommand)
     , History
+    , World
     ) where
 
-import Data.List (transpose, elem, elemIndices, intersperse, (\\))
+import Data.List (transpose, elem, elemIndices, intersperse, (\\), sortBy)
 import Control.Applicative
 import System.Random (randomRIO)
+import Data.Function
+import Data.Monoid
+import Control.Concurrent
 
 type Tile = Int
 type Score = Int
@@ -19,7 +25,7 @@ type BoardPosition = (Int, Int)
 type Board = [Row]
 type World = (Board, Score)
 type History = [World]
-data Command = North | South | East | West | Quit | Restart | NoCommand
+data Command = North | South | East | West | Quit | Restart | NoCommand deriving (Show, Eq)
 
 -- Create a new board
 buildBoard :: Int -> Int -> Board
@@ -90,6 +96,10 @@ sumRowLeft (x:y:xs)
 -- Find the total point value generated between board states
 diffScore :: Int -> Board -> Board -> Int
 diffScore score old new = score + (sum $ (concat old) \\ (concat new))
+
+-- Find all possible moves
+possibleMoves :: Board -> [Command]
+possibleMoves b = filter (\x -> (moveBoard b x) /= b) [North, South, East, West]
 
 -- Find if solutions are possible
 solutionCount :: Board -> Int
@@ -165,3 +175,71 @@ gameLoop h getClientInput clientAction = do
                 
                 -- Keep the world turning
                 return =<< gameLoop ((newBoard, newScore):h2) (getClientInput) clientAction
+
+
+
+-- Random command generator
+randomCommand :: History -> IO Command
+randomCommand h = do
+    threadDelay 50000
+    pickRand $ possibleMoves $ currentBoard h
+
+-- AI powered command generator
+type Space = Int
+type Clustering = Int
+type AIScore = (Command, Score, Clustering, Space)
+
+space      (_, _, _, x) = x
+clustering (_, _, x, _) = x
+score      (_, x, _, _) = x
+command    (x, _, _, _) = x
+ 
+aiCommand :: History -> IO Command
+aiCommand h = do
+    let score = moveTree (head h) 6 NoCommand
+    return $ command score
+
+moveTree :: World -> Int -> Command -> AIScore
+moveTree w d c
+    -- Iterate through all subsequent moves to see if command is successful
+    | d > 0 && moveCount > 0   = bestCommand $ map (\command -> do
+                                    let newBoard = moveBoard board command
+                                        newScore = diffScore score board newBoard
+                                    moveTree (worstBoard newBoard, newScore) (d - 1) (if c == NoCommand then command else c)
+                                 ) moves
+    -- If there are no possible moves then return the score and command
+    | d == 0 || moveCount == 0 = (c, score, clusterScore board, spaceScore board)
+
+    where board = fst w
+          moves = possibleMoves board
+          moveCount = length moves
+          score = snd w
+
+worstBoard :: Board -> Board
+worstBoard b = head $ sortBy (compare `on` (length . possibleMoves)) boards
+    where boards = map (\x -> mutateBoard b x 2) (emptyCells b)
+
+bestCommand :: [AIScore] -> AIScore
+bestCommand x = head $ sortBy (heuristicSort) x
+
+heuristicSort x y = (compare `on` heuristicSum) y x
+
+heuristicSum :: AIScore -> Score
+heuristicSum x = max 0 $ min (score x) $ fromEnum (s + ((log s) * sp) - c)
+    where s = fromIntegral $ score x
+          c = fromIntegral $ clustering x
+          sp = fromIntegral $ space x
+
+clusterScore :: Board -> Clustering
+clusterScore b = (foldr scoring 0 b) + (foldr scoring 0 (transpose b))
+    where scoring = (\x acc -> acc + clusterScoreRow 0 x)
+
+clusterScoreRow :: Int -> Row -> Clustering
+clusterScoreRow s (x:y:z:xs) = clusterScoreRow (y - x - z + s) xs
+clusterScoreRow s (x:y:xs)   = clusterScoreRow (x - y + s) xs
+clusterScoreRow s [x, y, z]  = clusterScoreRow (y - x - z + s) [y, z]
+clusterScoreRow s [x, y]     = abs (y - x + s)
+clusterScoreRow s [x]        = abs (s)
+
+spaceScore :: Board -> Space
+spaceScore = length . emptyCells
