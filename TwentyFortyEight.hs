@@ -70,36 +70,26 @@ moveBoard b x = case x of
     _   -> b
 
 shiftLeft :: Board -> Board
-shiftLeft = map (sumRowLeft . shiftRowLeft)
--- shiftLeft derivatives
-shiftRight = map (reverse . sumRowLeft . shiftRowLeft . reverse)
-shiftUp = transpose . shiftLeft . transpose
-shiftDown = transpose . shiftRight . transpose
+shiftLeft  = map (shiftRowLeft)
+shiftRight = map (reverse . shiftRowLeft . reverse)
+shiftUp    = transpose . shiftLeft . transpose
+shiftDown  = transpose . shiftRight . transpose
 
--- Move all empty cells to the end
+-- Move all empty cells to the end and sum any matching cells
 shiftRowLeft :: Row -> Row
-shiftRowLeft []     = []
-shiftRowLeft (x:xs)
-    | x > 0  = x:(shiftRowLeft xs)
-    | x == 0 = (shiftRowLeft xs) ++ [0]
-
--- Sum all neighboring cells that are equal and replace them with a 0
-sumRowLeft :: Row -> Row
-sumRowLeft []     = []
-sumRowLeft (x:[]) = [x]
-sumRowLeft (x:y:xs)
-    | x > 0 = if x == y
-              then (x + y):(sumRowLeft (0:xs))
-              else x:(sumRowLeft (y:xs))
-    | x == 0 = (sumRowLeft (y:xs)) ++ [0]
+shiftRowLeft = shift
+    where 
+        shift []     = []
+        shift [x] = [x]
+        shift (x:y:xs)
+            | x > 0 = if x == y then ((x + y):(shift xs)) ++ [0]
+                      else if y == 0 then (shift (x:xs)) ++ [0]
+                      else x:(shift (y:xs))
+            | x == 0 = (shift (y:xs)) ++ [0]
 
 -- Find the total point value generated between board states
 diffScore :: Int -> Board -> Board -> Int
 diffScore score old new = score + (sum $ (concat old) \\ (concat new))
-
--- Find all possible moves
-possibleMoves :: Board -> [Command]
-possibleMoves b = filter (\x -> (moveBoard b x) /= b) [North, South, East, West]
 
 -- Find if solutions are possible
 solutionCount :: Board -> Int
@@ -177,6 +167,9 @@ gameLoop h getClientInput clientAction = do
                 return =<< gameLoop ((newBoard, newScore):h2) (getClientInput) clientAction
 
 
+-- Find all possible moves
+possibleMoves :: Board -> [Command]
+possibleMoves b = filter (\x -> (moveBoard b x) /= b) [North, South, East, West]
 
 -- Random command generator
 randomCommand :: History -> IO Command

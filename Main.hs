@@ -59,13 +59,11 @@ ui h = do
 userCommand :: History -> IO Command
 userCommand h = do
     x <- getChar
-    ai <- aiCommand h
     return $ case x of
         'w' -> North
         's' -> South
         'd' -> East
         'a' -> West
-        'h' -> ai
         _   -> NoCommand
 
 -- Where the magic happens
