@@ -186,13 +186,13 @@ randomCommand h = do
 
 -- AI powered command generator
 type Space = Int
-type Clustering = Int
-type AIScore = (Command, Score, Clustering, Space)
+type Monotonicity = Int
+type AIScore = (Command, Score, Monotonicity, Space)
 
-space      (_, _, _, x) = x
-clustering (_, _, x, _) = x
-score      (_, x, _, _) = x
-command    (x, _, _, _) = x
+space        (_, _, _, x) = x
+monotonicity (_, _, x, _) = x
+score        (_, x, _, _) = x
+command      (x, _, _, _) = x
  
 aiCommand :: History -> IO Command
 aiCommand h = do
@@ -208,7 +208,7 @@ moveTree w d c
                                     moveTree (worstBoard newBoard, newScore) (d - 1) (if c == NoCommand then command else c)
                                  ) moves
     -- If there are no possible moves then return the score and command
-    | d == 0 || moveCount == 0 = (c, score, clusterScore board, spaceScore board)
+    | d == 0 || moveCount == 0 = (c, score, monotonic board, spaceScore board)
 
     where board = fst w
           moves = possibleMoves board
@@ -225,21 +225,22 @@ bestCommand x = head $ sortBy (heuristicSort) x
 heuristicSort x y = (compare `on` heuristicSum) y x
 
 heuristicSum :: AIScore -> Score
-heuristicSum x = max 0 $ min (score x) $ fromEnum (s + ((log s) * sp) - c)
+heuristicSum x = max 0 $ min (score x) $ fromEnum (s + ((log s) * sp) + (m * 200))
     where s = fromIntegral $ score x
-          c = fromIntegral $ clustering x
+          m = fromIntegral $ monotonicity x
           sp = fromIntegral $ space x
 
-clusterScore :: Board -> Clustering
-clusterScore b = (foldr scoring 0 b) + (foldr scoring 0 (transpose b))
-    where scoring = (\x acc -> acc + clusterScoreRow 0 x)
+monotonic :: Board -> Int
+monotonic b = length $ (m left) ++ (m up)-- ++ (m right) ++ (m down)
+    where m = (\x -> filter (/= True) $ map (monotonicRow) x)
+          left = b
+          right = map (reverse) b
+          up = transpose right
+          down = transpose left
 
-clusterScoreRow :: Int -> Row -> Clustering
-clusterScoreRow s (x:y:z:xs) = clusterScoreRow (y - x - z + s) xs
-clusterScoreRow s (x:y:xs)   = clusterScoreRow (x - y + s) xs
-clusterScoreRow s [x, y, z]  = clusterScoreRow (y - x - z + s) [y, z]
-clusterScoreRow s [x, y]     = abs (y - x + s)
-clusterScoreRow s [x]        = abs (s)
+monotonicRow :: Row -> Bool
+monotonicRow [x, y]   = if x <= y then True else False
+monotonicRow (x:y:xs) = if x <= y then monotonicRow (y:xs) else False
 
 spaceScore :: Board -> Space
 spaceScore = length . emptyCells
