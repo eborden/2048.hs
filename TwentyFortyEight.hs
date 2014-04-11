@@ -180,16 +180,19 @@ randomCommand h = do
 -- AI powered command generator
 type Space = Int
 type Monotonicity = Int
-type AIScore = (Command, Score, Monotonicity, Space)
+type Contigeous = Int
+type AIScore = (Command, Score, Monotonicity, Space, Contigeous, Int)
 
-space        (_, _, _, x) = x
-monotonicity (_, _, x, _) = x
-score        (_, x, _, _) = x
-command      (x, _, _, _) = x
+command      (x, _, _, _, _, _) = x
+score        (_, x, _, _, _, _) = x
+monotonicity (_, _, x, _, _, _) = x
+space        (_, _, _, x, _, _) = x
+contigeous   (_, _, _, _, x, _) = x
+maxBoard     (_, _, _, _, _, x) = x
  
-aiCommand :: History -> IO Command
-aiCommand h = do
-    let score = moveTree (head h) 6 NoCommand
+aiCommand :: Int -> History -> IO Command
+aiCommand depth h = do
+    let score = moveTree (head h) depth NoCommand
     return $ command score
 
 moveTree :: World -> Int -> Command -> AIScore
@@ -197,11 +200,12 @@ moveTree w d c
     -- Iterate through all subsequent moves to see if command is successful
     | d > 0 && moveCount > 0   = bestCommand $ map (\command -> do
                                     let newBoard = moveBoard board command
-                                        newScore = diffScore score board newBoard
-                                    moveTree (worstBoard newBoard, newScore) (d - 1) (if c == NoCommand then command else c)
+                                    moveTree ( worstBoard newBoard
+                                             , diffScore score board newBoard
+                                             ) (d - 1) (if c == NoCommand then command else c)
                                  ) moves
     -- If there are no possible moves then return the score and command
-    | d == 0 || moveCount == 0 = (c, score, monotonic board, spaceScore board)
+    | d == 0 || moveCount == 0 = (c, score, monotonic board, spaceScore board, contigeousScore board, maxOnBoard board)
 
     where board = fst w
           moves = possibleMoves board
@@ -215,25 +219,40 @@ worstBoard b = head $ sortBy (compare `on` (length . possibleMoves)) boards
 bestCommand :: [AIScore] -> AIScore
 bestCommand x = head $ sortBy (heuristicSort) x
 
-heuristicSort x y = (compare `on` heuristicSum) y x
+heuristicSort = flip compare `on` heuristicSum
 
 heuristicSum :: AIScore -> Score
-heuristicSum x = max 0 $ min (score x) $ fromEnum (s + ((log s) * sp) + (m * 200))
+heuristicSum x = max 0 $ min (score x) $ fromEnum ((log sp * s) + (log mx * log s) + (c * m))
     where s = fromIntegral $ score x
           m = fromIntegral $ monotonicity x
           sp = fromIntegral $ space x
+          c = fromIntegral $ contigeous x
+          mx = fromIntegral $ maxBoard x
 
 monotonic :: Board -> Int
-monotonic b = length $ (m left) ++ (m up)-- ++ (m right) ++ (m down)
-    where m = (\x -> filter (/= True) $ map (monotonicRow) x)
+monotonic b = m left + m down
+    where m = monotonicityList
           left = b
-          right = map (reverse) b
-          up = transpose right
           down = transpose left
 
-monotonicRow :: Row -> Bool
-monotonicRow [x, y]   = if x <= y then True else False
-monotonicRow (x:y:xs) = if x <= y then monotonicRow (y:xs) else False
+monotonicityList :: Ord a => [a] -> Int
+monotonicityList xs = ml xs
+    where ml [x, y]   = (m x y)
+          ml (x:y:xs) = (m x y) + ml (y:xs)
+          m x y = if (x <= y) then 1 else -1
 
 spaceScore :: Board -> Space
 spaceScore = length . emptyCells
+
+maxOnBoard :: Board -> Int
+maxOnBoard b = maximum $ map (maximum) b
+
+contigeousScore :: Board -> Int
+contigeousScore b = sum $ map (contigeousValues) b
+
+contigeousValues :: Eq a => [a] -> Int
+contigeousValues xs = distance 0 xs
+    where distance s [x] = s
+          distance s (x:y:xs)
+              | x == y = distance (s + 1) (y:xs)
+              | x /= y = distance s (y:xs)
