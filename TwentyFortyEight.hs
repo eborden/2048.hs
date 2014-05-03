@@ -16,6 +16,7 @@ import Heuristics
 import Data.List (transpose, sortBy)
 import System.Random (randomRIO)
 import Data.Function
+import Control.Monad.Writer
 
 -- Create a new board
 buildBoard :: Int -> Int -> Board
@@ -37,31 +38,46 @@ mutateRow (x:xs) p t
     | otherwise = t:xs
 
 -- Key movements
-moveBoard :: Board -> Command -> Board
-moveBoard b x = case x of
+moveBoard :: Board -> Command -> (Board, Sum Int)
+moveBoard b x = runWriter $ case x of
     North -> shiftUp b
     South -> shiftDown b
     East -> shiftRight b
     West -> shiftLeft b
-    _   -> b
+    _   -> return b
 
-shiftLeft :: Board -> Board
-shiftLeft  = map (shiftRowLeft)
-shiftRight = map (reverse . shiftRowLeft . reverse)
-shiftUp    = transpose . shiftLeft . transpose
-shiftDown  = transpose . shiftRight . transpose
+shiftLeft :: Board -> Writer (Sum Int) Board
+shiftLeft  = mapM (shiftRowLeft)
+shiftRight :: Board -> Writer (Sum Int) Board
+shiftRight = mapM (\x -> do 
+    y <- shiftRowLeft $ reverse x
+    return $ reverse y)
+shiftUp x = do 
+    y <- shiftLeft $ transpose x
+    return $ transpose y
+shiftDown x = do 
+    y <- shiftRight $ transpose x
+    return $ transpose y
 
 -- Move all empty cells to the end and sum any matching cells
-shiftRowLeft :: Row -> Row
-shiftRowLeft = shift
-    where 
-        shift []     = []
-        shift [x] = [x]
-        shift (x:y:xs)
-            | x > 0 = if x == y then ((x + y):(shift xs)) ++ [0]
-                      else if y == 0 then (shift (x:xs)) ++ [0]
-                      else x:(shift (y:xs))
-            | x == 0 = (shift (y:xs)) ++ [0]
+shiftRowLeft :: Row -> Writer (Sum Int) Row
+shiftRowLeft []  = return []
+shiftRowLeft [x] = return [x]
+shiftRowLeft (x:y:xs)
+            | x > 0 = if x == y then do 
+                          let newValue = x + y
+                          tell $ Sum newValue
+                          zs <- shiftRowLeft xs
+                          return $ (newValue:zs) ++ [0]
+                      else if y == 0 then do
+                          zs <- shiftRowLeft (x:xs)
+                          return $ zs ++ [0]
+                      else do
+                          zs <- shiftRowLeft (y:xs)
+                          return $ x:zs
+            | x == 0 = do
+                      zs <- shiftRowLeft (y:xs)
+                      return $ zs ++ [0]
 
 -- Conditions
 gameOver :: Board -> Bool
@@ -121,8 +137,8 @@ gameLoop h getClientInput clientAction = do
             Quit -> return (h2, False)
             _    -> do
                 --Handle input
-                let newBoard = moveBoard currBoard command
-                    newScore = diffScore (currentScore h2) currBoard newBoard
+                let (newBoard, sumScore) = moveBoard currBoard command
+                    newScore = (getSum sumScore) + (currentScore h2)
                 
                 -- Keep the world turning
                 return =<< gameLoop ((newBoard, newScore):h2) (getClientInput) clientAction
@@ -134,7 +150,7 @@ gameLoop h getClientInput clientAction = do
 
 -- Find all possible moves
 possibleMoves :: Board -> [Command]
-possibleMoves b = filter (\x -> (moveBoard b x) /= b) [North, South, East, West]
+possibleMoves b = filter (\x -> (fst (moveBoard b x)) /= b) [North, South, East, West]
  
 -- Random command generator
 randomCommand :: History -> IO Command
@@ -155,16 +171,17 @@ moveTree w d c
     -- Iterate through all subsequent moves to see if command is successful
     | d > 0 = bestCommand $ do
             let boards = map(\command -> do
-                    let newBoard = moveBoard board command
-                    ((newBoard, command), diffScore score board newBoard)) moves
-                spanish = take 2 (sortBy (flip compare `on` snd) boards)
+                    let (newBoard, newScore) = moveBoard board command
+                    ((newBoard, command), getSum newScore)) moves
+                bestBoards = take 3 $ hSort boards
             map (\((newBoard, command), newScore) -> do
-                moveTree (worstBoard newBoard, newScore) (d - 1) (if c == NoCommand then command else c)) boards
+                moveTree (worstBoard newBoard, newScore) (d - 1) (if c == NoCommand then command else c)) bestBoards
 
     where board = fst w
           moves = possibleMoves board
           moveCount = length moves
           score = snd w
+          hSort = sortBy (flip compare `on` (heuristicSum . (\((board, c), score) -> heuristic c score board)))
 
 worstBoard :: Board -> Board
 worstBoard b = head $ sortBy (compare `on` (length . possibleMoves)) boards

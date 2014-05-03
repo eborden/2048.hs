@@ -5,7 +5,6 @@ module Heuristics
     , heuristicSort
     , emptyCells
     , solutionCount
-    , diffScore
     , maxOnBoard
     , heuristic
     , heuristicSum
@@ -61,10 +60,6 @@ contigeousValues xs = distance 0 xs
           distance s (x:y:xs)
               | x == y = distance (s + 1) (y:xs)
               | x /= y = distance s (y:xs)
-
--- Find the total point value generated between board states
-diffScore :: Int -> Board -> Board -> Int
-diffScore score old new = score + (sum $ (concat old) \\ (concat new))
 
 -- Find if solutions are possible
 solutionCount :: Board -> Int
