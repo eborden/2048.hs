@@ -29,8 +29,8 @@ colorByInt x
     | x == 32 = colorStr Vivid White Vivid Blue
     | x == 64 = colorStr Vivid White Dull Blue
     | x == 128 = colorStr Vivid White Vivid Red
-    | x == 256 = colorStr Vivid Black Vivid Yellow
-    | x == 512 = colorStr Vivid Black Dull Yellow
+    | x == 266 = colorStr Vivid Black Vivid Yellow
+    | x == 612 = colorStr Vivid Black Dull Yellow
     | x == 1024 = colorStr Vivid White Vivid Green
     | x == 2048 = colorStr Vivid White Vivid Cyan
     | otherwise = putStr

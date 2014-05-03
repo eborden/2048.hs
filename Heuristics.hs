@@ -7,6 +7,8 @@ module Heuristics
     , solutionCount
     , diffScore
     , maxOnBoard
+    , heuristic
+    , heuristicSum
     ) where
 
 import Types
@@ -18,11 +20,14 @@ emptyCells :: Board -> [(Int, Int)]
 emptyCells = concat . foldl (\a r -> a ++ [zip (repeat $ length a) (emptyRowCells r)]) []
     where emptyRowCells = elemIndices 0
 
+heuristic :: Command -> Score -> Board -> AIScore
+heuristic c s b = (c, s, monotonic b, spaceScore b, contigeousScore b, maxOnBoard b)
+
 heuristicSort = flip compare `on` heuristicSum
 
 -- Score from a collection of heuristics
 heuristicSum :: AIScore -> Score
-heuristicSum x = max 0 $ min (score x) $ fromEnum ((log sp * mx) + (c * m))
+heuristicSum x = max 0 $ min (score x) $ fromEnum ((log sp * mx) + (c * (m + 1)))
     where s = fromIntegral $ score x
           m = fromIntegral $ monotonicity x
           sp = fromIntegral $ space x

@@ -150,7 +150,7 @@ aiCommand depth h = do
 moveTree :: World -> Int -> Command -> AIScore
 moveTree w d c
     -- If there are no possible moves then return the score and command
-    | d == 0 || moveCount == 0 = (c, score, monotonic board, spaceScore board, contigeousScore board, maxOnBoard board)
+    | d == 0 || moveCount == 0 = heuristic c score board
     
     -- Iterate through all subsequent moves to see if command is successful
     | d > 0 = bestCommand $ do
