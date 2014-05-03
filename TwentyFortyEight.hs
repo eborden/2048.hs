@@ -5,7 +5,6 @@ module TwentyFortyEight
     , currentBoard
     , currentScore
     , aiCommand
-    , randomCommand
     , Command(North, South, East, West, Quit, Restart, NoCommand)
     , History
     , World
@@ -150,13 +149,8 @@ gameLoop h getClientInput clientAction = do
 
 -- Find all possible moves
 possibleMoves :: Board -> [Command]
-possibleMoves b = filter (\x -> (fst (moveBoard b x)) /= b) [North, South, East, West]
+possibleMoves b = filter ((/= b) . fst . moveBoard b) [North, South, East, West]
  
--- Random command generator
-randomCommand :: History -> IO Command
-randomCommand h = do
-    pickRand $ possibleMoves $ currentBoard h
-
 -- AI powered command generator
 aiCommand :: Int -> History -> IO Command
 aiCommand depth h = do
@@ -164,24 +158,31 @@ aiCommand depth h = do
     return $ command score
 
 moveTree :: World -> Int -> Command -> AIScore
-moveTree w d c
+moveTree w depth c
     -- If there are no possible moves then return the score and command
-    | d == 0 || moveCount == 0 = heuristic c score board
+    | depth == 0 || moveCount == 0 = heuristic c score board
     
-    -- Iterate through all subsequent moves to see if command is successful
-    | d > 0 = bestCommand $ do
-            let boards = map(\command -> do
-                    let (newBoard, newScore) = moveBoard board command
-                    ((newBoard, command), getSum newScore)) moves
-                bestBoards = take 3 $ hSort boards
-            map (\((newBoard, command), newScore) -> do
-                moveTree (worstBoard newBoard, newScore) (d - 1) (if c == NoCommand then command else c)) bestBoards
+    -- Iterate through all subsequent moves to see if the command is successful
+    | depth > 0 = bestCommand $ do
+            -- get all the possible boards and prune the worst
+            let boards = pruneBoards $ map (\command -> do
+                let (newBoard, moveScore) = moveBoard board command
+                (command, (newBoard, getSum moveScore + score))
+                ) moves
+
+            -- continue to recurse through the move tree
+            map (\(command, (newBoard, newScore)) ->
+                moveTree (worstBoard newBoard, newScore) (depth - 1) (if c == NoCommand then command else c)) boards
 
     where board = fst w
           moves = possibleMoves board
           moveCount = length moves
           score = snd w
-          hSort = sortBy (flip compare `on` (heuristicSum . (\((board, c), score) -> heuristic c score board)))
+
+-- Sort boards by their heuristic score
+pruneBoards :: [(Command, (Board, Score))] -> [(Command, (Board, Score))]
+pruneBoards bs = take prune $ sortBy (flip compare `on` (heuristicSum . (\(c, (board, score)) -> heuristic c score board))) bs
+    where prune = if length bs > 2 then length bs - 1 else 2
 
 worstBoard :: Board -> Board
 worstBoard b = head $ sortBy (compare `on` (length . possibleMoves)) boards

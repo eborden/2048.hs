@@ -1,6 +1,6 @@
 module Heuristics
     ( monotonic
-    , spaceScore
+    , openSpace
     , contigeousScore
     , heuristicSort
     , emptyCells
@@ -20,18 +20,20 @@ emptyCells = concat . foldl (\a r -> a ++ [zip (repeat $ length a) (emptyRowCell
     where emptyRowCells = elemIndices 0
 
 heuristic :: Command -> Score -> Board -> AIScore
-heuristic c s b = (c, s, monotonic b, spaceScore b, contigeousScore b, maxOnBoard b)
+heuristic c s b = (c, s, monotonic b, openSpace b, contigeousScore b, maxOnBoard b)
 
 heuristicSort = flip compare `on` heuristicSum
 
 -- Score from a collection of heuristics
 heuristicSum :: AIScore -> Score
-heuristicSum x = max 0 $ min (score x) $ fromEnum ((log sp * mx) + (c * (m + 1)))
+heuristicSum x = minMax x (s + (log sp * mx) + (m + 1 * c) * sp)
     where s = fromIntegral $ score x
           m = fromIntegral $ monotonicity x
           sp = fromIntegral $ space x
           c = fromIntegral $ contigeous x
           mx = fromIntegral $ maxBoard x
+
+minMax x algo = max 0 $ min (score x) $ fromEnum algo
 
 monotonic :: Board -> Int
 monotonic b = m left + m down
@@ -45,8 +47,8 @@ monotonicityList xs = abs $ ml xs
           ml (x:y:xs) = (m x y) + ml (y:xs)
           m x y = if (x >= y) then 1 else -1
 
-spaceScore :: Board -> Space
-spaceScore = length . emptyCells
+openSpace :: Board -> Space
+openSpace = length . emptyCells
 
 maxOnBoard :: Board -> Int
 maxOnBoard b = maximum $ map (maximum) b
