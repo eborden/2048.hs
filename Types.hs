@@ -30,7 +30,7 @@ type Board = [Row]
 type World = (Board, Score)
 type History = [World]
 
-data Command = North | South | East | West | Quit | Restart | NoCommand deriving (Show, Eq)
+data Command = North | South | East | West | Quit | Restart | NoCommand deriving (Eq)
 
 type Space = Int
 type Monotonicity = Int

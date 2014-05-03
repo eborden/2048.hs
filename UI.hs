@@ -1,4 +1,4 @@
-module UI (main) where
+module UI (main, userCommand, aiCommand) where
 
 import TwentyFortyEight
 import System.Console.ANSI
@@ -67,20 +67,20 @@ userCommand h = do
         _   -> NoCommand
 
 -- Where the magic happens
-main = do
+main runner = do
     -- Turn input buffering off so key presses don't need an enter
     hSetBuffering stdin NoBuffering
 
     hideCursor
 
     -- Kick off the game loop with a fresh history
-    (final, win) <- gameLoop [(startBoard (2, 2) (buildBoard 4 4), 0)] (aiCommand 6) (ui)
+    (final, win) <- gameLoop [(startBoard (2, 2) (buildBoard 4 4), 0)] (runner) (ui)
 
     if win then mapM (putStrLn) ["", "", "Congratulations!"]
     else mapM (putStrLn) ["", "", "Game Over. Press w to play again."]
 
     c <- getChar
-    if c =='w' then main
+    if c =='w' then main runner
     else showCursor
     
     clearScreen
