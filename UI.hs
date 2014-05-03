@@ -59,12 +59,13 @@ ui h = do
 userCommand :: History -> IO Command
 userCommand h = do
     x <- getChar
-    return $ case x of
-        'w' -> North
-        's' -> South
-        'd' -> East
-        'a' -> West
-        _   -> NoCommand
+    case x of
+        'w' -> return North
+        's' -> return South
+        'd' -> return East
+        'a' -> return West
+        'h' -> aiCommand 8 h
+        _   -> return NoCommand
 
 -- Where the magic happens
 main runner = do
