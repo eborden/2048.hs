@@ -47,16 +47,9 @@ moveBoard b x = runWriter $ case x of
 
 shiftLeft :: Board -> Writer (Sum Int) Board
 shiftLeft  = mapM (shiftRowLeft)
-shiftRight :: Board -> Writer (Sum Int) Board
-shiftRight = mapM (\x -> do 
-    y <- shiftRowLeft $ reverse x
-    return $ reverse y)
-shiftUp x = do 
-    y <- shiftLeft $ transpose x
-    return $ transpose y
-shiftDown x = do 
-    y <- shiftRight $ transpose x
-    return $ transpose y
+shiftRight = mapM (shiftRowLeft . reverse >=> return . reverse)
+shiftUp = shiftLeft . transpose >=> return . transpose
+shiftDown = shiftRight . transpose >=> return . transpose
 
 -- Move all empty cells to the end and sum any matching cells
 shiftRowLeft :: Row -> Writer (Sum Int) Row
@@ -160,7 +153,10 @@ aiCommand depth h = do
 moveTree :: World -> Int -> Command -> AIScore
 moveTree w depth c
     -- If there are no possible moves then return the score and command
-    | depth == 0 || moveCount == 0 = heuristic c score board
+    | depth == 0 && moveCount == 0 = heuristic c score board
+    | depth == 0 = heuristic c score board
+    | moveCount == 0 && win board = (c, 100000, 100000, 10000, 0, 100000)
+    | moveCount == 0 = (c, 0, 0, 0, 0, 0)
     
     -- Iterate through all subsequent moves to see if the command is successful
     | depth > 0 = bestCommand $ do

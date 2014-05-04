@@ -11,13 +11,13 @@ module Types
     , Command(North, South, East, West, Quit, Restart, NoCommand)
     , Space
     , Monotonicity
-    , Contigeous
+    , Weight
     , AIScore
     , command
     , score
     , monotonicity
     , space
-    , contigeous
+    , weight
     , maxBoard
     ) where
 
@@ -34,16 +34,16 @@ data Command = North | South | East | West | Quit | Restart | NoCommand deriving
 
 type Space = Int
 type Monotonicity = Int
-type Contigeous = Int
+type Weight = Int
 type MaxOnBoard = Int
-type AIScore = (Command, Score, Monotonicity, Space, Contigeous, MaxOnBoard)
+type AIScore = (Command, Score, Monotonicity, Space, Weight, MaxOnBoard)
 
 -- AIScore getters
 command      (x, _, _, _, _, _) = x
 score        (_, x, _, _, _, _) = x
 monotonicity (_, _, x, _, _, _) = x
 space        (_, _, _, x, _, _) = x
-contigeous   (_, _, _, _, x, _) = x
+weight       (_, _, _, _, x, _) = x
 maxBoard     (_, _, _, _, _, x) = x
 
 -- History functions

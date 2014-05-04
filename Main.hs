@@ -9,6 +9,6 @@ main = do
     grockArg $ args !! 0
     where grockArg a
             | a == "u" = U.main U.userCommand
-            | a == "a" = U.main $ U.aiCommand 6
+            | a == "a" = U.main $ U.aiCommand 5
             | a == "r" = R.main
             | otherwise = U.main U.userCommand
