@@ -58,11 +58,13 @@ neighborWeight :: Board -> Int
 neighborWeight b = (sum (map (rowWeight) b)) + (sum (map (rowWeight) (transpose b)))
 
 rowWeight :: Row -> Int
-rowWeight xs = abs $ (ml xs) + (m (Just (xs !! 1), Just (xs !! 0), Nothing))
-    where ml [x, y, z]   = (m (Just x, Just y, Just z))
-          ml (x:y:z:xs) = (m (Just x, Just y, Just z)) + ml (y:z:xs)
-          m (Just x, Just y, Just z) = (abs $ y - x) + (abs $ y - z)
-          m (Just x, Just y, Nothing) = (abs $ y - x)
+rowWeight xs = abs $ (sumRow xs)
+    where rowWeight xs = abs $ sumRow xs
+          sumRow [x, y, z]   = sumNeighbors (Just x, Just y, Just z)
+          sumRow [x, y]   = (sumNeighbors (Just x, Just y, Nothing))
+          sumRow (x:y:z:xs) = (sumNeighbors (Just x, Just y, Just z)) + sumRow (y:z:xs)
+          sumNeighbors (Just x, Just y, Just z) = (abs $ y - x) + (abs $ y - z)
+          sumNeighbors (Just x, Just y, Nothing) = (abs $ y - x)
 
 -- Find if solutions are possible
 solutionCount :: Board -> Int
