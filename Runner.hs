@@ -1,19 +1,27 @@
 module Runner (main) where
 
 import TwentyFortyEight
+import Data.Time.Clock (diffUTCTime, getCurrentTime)
 
 ui h = return ()
 
-loop :: Int -> [Int] -> IO [Int]
-loop i acc = do 
-    (final, win) <- gameLoop [(startBoard (2, 2) (buildBoard 4 4), 0)] (aiCommand 2) (ui)
+run = do
+    board <- startBoard (buildBoard 4 4)
+    (final, win) <- gameLoop [(board, 0)] (aiCommand 3) (ui)
     let score = currentScore final
-    putStrLn $ show score
-    putStrLn $ show win
-    if i == 1 then return (score:acc)
-    else loop (i - 1) (score:acc)
+    return (score, win)
+
+runSync acc x
+    | x > 0 = do
+        score <- run
+        runSync (score:acc) (x - 1) 
+    | otherwise = return acc
 
 main = do
-    scores <- loop 100 []
-    putStrLn $ "average: " ++ (show $ (fromIntegral $ sum scores) / (fromIntegral $ length scores))
+    start <- getCurrentTime
+    scores <- runSync [] 100
+    end <- getCurrentTime
+    putStrLn $ "average: " ++ (show $ (fromIntegral $ sum $ map (fst) scores) / (fromIntegral $ length scores))
+    putStrLn $ "win: " ++ (show $ (fromIntegral $ length $ filter (snd) scores) / (fromIntegral $ length scores) * 100.0) ++ "%"
+    putStrLn $ "in " ++ (show $ diffUTCTime end start) ++ " seconds"
     return ()

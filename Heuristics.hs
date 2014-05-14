@@ -7,7 +7,6 @@ module Heuristics
     , maxOnBoard
     , heuristic
     , heuristicSum
-    , rowWeight
     ) where
 
 import Types
@@ -20,13 +19,13 @@ emptyCells = concat . foldl (\a r -> a ++ [zip (repeat $ length a) (emptyRowCell
     where emptyRowCells = elemIndices 0
 
 heuristic :: Command -> Score -> Board -> AIScore
-heuristic c s b = (c, s, monotonic b, openSpace b, boardWeight b, maxOnBoard b)
+heuristic c s b = (c, s, monotonic b, openSpace b, neighborWeight b, maxOnBoard b)
 
 heuristicSort = flip compare `on` heuristicSum
 
 -- Score from a collection of heuristics
 heuristicSum :: AIScore -> Score
-heuristicSum x = fromEnum $ (s + (log sp * mx) + m * sp - c)
+heuristicSum x = round (s + (log sp * mx) + sp + m - c)
     where s = fromIntegral $ score x
           m = fromIntegral $ monotonicity x
           sp = fromIntegral $ space x
@@ -35,17 +34,17 @@ heuristicSum x = fromEnum $ (s + (log sp * mx) + m * sp - c)
 
 monotonic :: Board -> Int
 monotonic b = m left + m down
-    where m = sum . (map (monotonicityList))
+    where m = sum . (map (monotonicityList . filter (/= 0)))
           left = b
           down = transpose left
 
-monotonicityList :: Row -> Int
+monotonicityList :: Ord a => [a] -> Int
 monotonicityList xs = abs $ ml xs
     where ml []       = 0
+          ml [x]      = 0
           ml [x, y]   = (m x y)
           ml (x:y:xs) = (m x y) + ml (y:xs)
           m x y 
-            | x == 0 || 0 == y = 0
             | x >= y           = 1
             | otherwise        = -1
 
@@ -55,8 +54,8 @@ openSpace = length . emptyCells
 maxOnBoard :: Board -> Int
 maxOnBoard b = maximum $ map (maximum) b
 
-boardWeight :: Board -> Int
-boardWeight b = (sum (map (rowWeight) b)) + (sum (map (rowWeight) (transpose b)))
+neighborWeight :: Board -> Int
+neighborWeight b = (sum (map (rowWeight) b)) + (sum (map (rowWeight) (transpose b)))
 
 rowWeight :: Row -> Int
 rowWeight xs = abs $ (ml xs) + (m (Just (xs !! 1), Just (xs !! 0), Nothing))

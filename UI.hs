@@ -75,7 +75,8 @@ main runner = do
     hideCursor
 
     -- Kick off the game loop with a fresh history
-    (final, win) <- gameLoop [(startBoard (2, 2) (buildBoard 4 4), 0)] (runner) (ui)
+    board <- startBoard (buildBoard 4 4)
+    (final, win) <- gameLoop [(board, 0)] (runner) (ui)
 
     if win then mapM (putStrLn) ["", "", "Congratulations!"]
     else mapM (putStrLn) ["", "", "Game Over. Press w to play again."]

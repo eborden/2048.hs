@@ -2,6 +2,7 @@ module TwentyFortyEight
     ( gameLoop
     , buildBoard
     , startBoard
+    , addRandomCell
     , currentBoard
     , currentScore
     , aiCommand
@@ -21,8 +22,8 @@ import Control.Monad.Writer
 buildBoard :: Int -> Int -> Board
 buildBoard x y = replicate y (replicate x 0)
 
-startBoard :: BoardPosition -> Board -> Board
-startBoard x b = mutateBoard b x 2 
+startBoard :: Board -> IO Board
+startBoard b = addRandomCell b [2] 
 
 -- Change a tile on the board
 mutateBoard :: Board -> BoardPosition -> Tile -> Board
@@ -155,30 +156,30 @@ moveTree w depth c
     -- If there are no possible moves then return the score and command
     | depth == 0 && moveCount == 0 = heuristic c score board
     | depth == 0 = heuristic c score board
-    | moveCount == 0 && win board = (c, 100000, 100000, 10000, 0, 100000)
+    | moveCount == 0 && win board = (c, 100000, 100000, 10000, 1, 100000)
     | moveCount == 0 = (c, 0, 0, 0, 0, 0)
     
     -- Iterate through all subsequent moves to see if the command is successful
     | depth > 0 = bestCommand $ do
             -- get all the possible boards and prune the worst
-            let boards = pruneBoards $ map (\command -> do
-                let (newBoard, moveScore) = moveBoard board command
-                (command, (newBoard, getSum moveScore + score))
-                ) moves
+            let boards = pruneBoards $ map (makeMove) moves
 
             -- continue to recurse through the move tree
-            map (\(command, (newBoard, newScore)) ->
-                moveTree (worstBoard newBoard, newScore) (depth - 1) (if c == NoCommand then command else c)) boards
+            map (nextMoves) boards
 
     where board = fst w
           moves = possibleMoves board
           moveCount = length moves
           score = snd w
+          makeMove command = let (newBoard, moveScore) = moveBoard board command in
+              (command, (newBoard, getSum moveScore + score))
+          nextMoves (command, (newBoard, newScore)) = let world = (worstBoard newBoard, newScore) in
+              moveTree world (depth - 1) (if c == NoCommand then command else c)
 
 -- Sort boards by their heuristic score
 pruneBoards :: [(Command, (Board, Score))] -> [(Command, (Board, Score))]
 pruneBoards bs = take prune $ sortBy (flip compare `on` (heuristicSum . (\(c, (board, score)) -> heuristic c score board))) bs
-    where prune = if length bs > 2 then length bs - 1 else 2
+    where prune = if length bs > 1 then length bs - 1 else 2
 
 worstBoard :: Board -> Board
 worstBoard b = head $ sortBy (compare `on` (length . possibleMoves)) boards
