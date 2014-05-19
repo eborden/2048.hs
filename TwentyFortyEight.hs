@@ -173,7 +173,7 @@ moveTree w depth c
           score = snd w
           makeMove command = let (newBoard, moveScore) = moveBoard board command in
               (command, (newBoard, getSum moveScore + score))
-          nextMoves (command, (newBoard, newScore)) = let world = (worstBoard newBoard, newScore) in
+          nextMoves (command, (newBoard, newScore)) = let world = (worstBoard depth newBoard, newScore) in
               moveTree world (depth - 1) (if c == NoCommand then command else c)
 
 -- Sort boards by their heuristic score
@@ -181,9 +181,9 @@ pruneBoards :: [(Command, (Board, Score))] -> [(Command, (Board, Score))]
 pruneBoards bs = take prune $ sortBy (flip compare `on` (heuristicSum . (\(c, (board, score)) -> heuristic c score board))) bs
     where prune = if length bs > 1 then length bs - 1 else 2
 
-worstBoard :: Board -> Board
-worstBoard b = head $ sortBy (compare `on` (length . possibleMoves)) boards
-    where boards = map (\x -> mutateBoard b x 2) (emptyCells b)
+worstBoard :: Int -> Board -> Board
+worstBoard depth b = head $ sortBy (compare `on` (length . possibleMoves)) boards
+    where boards = map (\x -> mutateBoard b x (if (mod depth 3 > 1) then 4 else 2)) (emptyCells b)
 
 bestCommand :: [AIScore] -> AIScore
 bestCommand x = head $ sortBy (heuristicSort) x
