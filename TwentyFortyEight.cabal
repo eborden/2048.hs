@@ -17,12 +17,16 @@ cabal-version:       >=1.10
 
 executable 2048
   main-is: Main.hs        
-  -- other-modules:       
-  -- other-extensions:    
-  build-depends:       base >=4.5 && <4.6
-                     , random >=1.0 && <1.1
-                     , mtl >=2.0 && <2.1
-                     , ansi-terminal >=0.5 && <0.6
-                     , time == 1.4
-  -- hs-source-dirs:      
+  other-modules:       
+        Heuristics
+        Runner
+        TwentyFortyEight
+        Types
+        UI
+  build-depends:       base >=4.5
+                     , random >=1.0
+                     , mtl >=2.0
+                     , ansi-terminal >=0.5
+                     , time >= 1.4
+  hs-source-dirs: .
   default-language:    Haskell2010
